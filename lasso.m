@@ -58,17 +58,16 @@ ABSTOL   = 1e-6;
 %% Proximal gradient
 
 f = @(u) 0.5*sum_square(A*u-b);
-lambda = 0.1;
-beta = 0.5;
+lambda = 0.01;
+beta = 0.01;
 n = 10;
-ista_psnr = zeros(n);
-fista_psnr = zeros(n);
 
-    [x_prox, p_prox, time_ista] = ista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
+
+    [x_prox, ~, ~] = ista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
     
 
 
-    [x_fast, p_fast, time_fista] = fista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
+    [x_fast, ~, ~] = fista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
     
 
 
@@ -87,8 +86,8 @@ recovered_fista = reshape(A * x_fast, rows, cols, numberOfColorChannels);
 %recovered_cvx = reshape(A * h.x_cvx, rows, cols);
 
 % PSNRs
-psnr_ista = psnr(recovered_ista, orig_patch);
-psnr_fista = psnr(recovered_fista, orig_patch);
+psnr_ista = psnr(recovered_ista, patch);
+psnr_fista = psnr(recovered_fista, patch);
 %psnr_cvx = psnr(recovered_cvx, image_double);
 
 figure;
@@ -115,13 +114,4 @@ title(['Recovered Image (FISTA) PSNR: ' num2str(psnr_fista)]);
 % subplot(1, 2, 2);
 % plot(x_axis, fista_psnr);
 % title('FISTA');
-end
-
-function p = objective(A, b, gamma, x, z)
-    p = 0.5*sum_square(A*x - b) + gamma*norm(z,1);
-end
-
-
-function x = prox_l1(y, lambda)
-    x = sign(y) .* max(abs(y) - lambda, 0);
 end
