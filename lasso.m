@@ -7,36 +7,18 @@ image = imread('cameraman.jpg');
 
 
 % Define the region of interest (ROI)
-x_start = 50; % Starting x-coordinate of the ROI
+x_start = 100; % Starting x-coordinate of the ROI
 y_start = 50;  % Starting y-coordinate of the ROI
-width = 128;    % Width of the ROI
-height = 128;   % Height of the ROI
+width = 64;    % Width of the ROI
+height = 64;   % Height of the ROI
 
-% Extract the ROI from the image
-patch = image(y_start:y_start+height-1, x_start:x_start+width-1, :);
+% Get the patch
+[patch, orig_patch] = noisy_patch(image, x_start, y_start, width, height, 0);
+
+
 [rows, cols, numberOfColorChannels] = size(patch);
-
-if (numberOfColorChannels == 3)
-    patch = rgb2gray(patch);
-    numberOfColorChannels = 1;
-end
-
-% Add Gaussian noise
-% Create the Gaussian filter kernel using fspecial\
-image_double = im2double(patch);
-gaussian_kernel = fspecial('gaussian', [3 3], 4);
-blurred_patch = imfilter(image_double, gaussian_kernel, 'conv', 'replicate');
-
-noisy_patch = imnoise(blurred_patch, 'gaussian', 0, (1e-6));
-
-% Normalize the image
-min_value = min(image_double(:));
-max_value = max(image_double(:));
-normalized_patch = (noisy_patch - min_value) / (max_value - min_value);
 % Reshape the image matrix into a vector
-b = reshape(normalized_patch, [], 1);
-
-
+b = reshape(patch, [], 1);
 
 m = length(b);      % 
 n = length(b);      % 
@@ -48,7 +30,7 @@ A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
 fprintf('solving instance with %d examples, %d variables\n', m, n);
 
 gamma_max = norm(A'*b,'inf');
-gamma = 0.00001*gamma_max;
+gamma = 1e-20*gamma_max;
 
 % cached computations for all methods
 AtA = A'*A;
@@ -56,8 +38,8 @@ Atb = A'*b;
 
 %% Global constants and defaults
 
-MAX_ITER = 1000;
-ABSTOL   = 1e-8;
+MAX_ITER = 10000;
+ABSTOL   = 1e-6;
 
 % %% CVX
 % 
@@ -77,102 +59,62 @@ ABSTOL   = 1e-8;
 
 f = @(u) 0.5*sum_square(A*u-b);
 lambda = 0.1;
-beta = 0.1;
+beta = 0.5;
+n = 10;
+ista_psnr = zeros(n);
+fista_psnr = zeros(n);
 
-tic;
+    [x_prox, p_prox, time_ista] = ista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
+    
 
-x = x0;
-xprev = x;
 
-for k = 1:MAX_ITER
-    while 1
-        grad_x = AtA*x - Atb;
-        z = prox_l1(x - lambda*grad_x, lambda*gamma);
-        if f(z) <= f(x) + grad_x'*(z - x) + (1/(2*lambda))*sum_square(z - x)
-            break;
-        end
-        lambda = beta*lambda;
-    end
-    xprev = x;
-    x = z;
+    [x_fast, p_fast, time_fista] = fista(f, x0, A, b, AtA, Atb, lambda,gamma, beta, MAX_ITER, ABSTOL);
+    
 
-    h.prox_optval(k) = objective(A, b, gamma, x, x);
-    if k > 1 && abs(h.prox_optval(k) - h.prox_optval(k-1)) < ABSTOL
-        break;
-    end
-end
 
-h.x_prox = x;
-h.p_prox = h.prox_optval(end);
-h.prox_grad_toc = toc;
 
-%% Fast proximal gradient
-
-lambda = 0.1;
-
-tic;
-
-x = x0;
-xprev = x;
-for k = 1:MAX_ITER
-    y = x + (k/(k+3))*(x - xprev);
-    while 1
-        grad_y = AtA*y - Atb;
-        z = prox_l1(y - lambda*grad_y, lambda*gamma);
-        if f(z) <= f(y) + grad_y'*(z - y) + (1/(2*lambda))*sum_square(z - y)
-            break;
-        end
-        lambda = beta*lambda;
-    end
-    xprev = x;
-    x = z;
-
-    h.fast_optval(k) = objective(A, b, gamma, x, x);
-    if k > 1 && abs(h.fast_optval(k) - h.fast_optval(k-1)) < ABSTOL
-        break;
-    end
-end
-
-h.x_fast = x;
-h.p_fast = h.fast_optval(end);
-h.fast_toc = toc;
 
 %% Timing
 
-fprintf('Proximal gradient time elapsed: %.2f seconds.\n', h.prox_grad_toc);
-fprintf('Fast prox gradient time elapsed: %.2f seconds.\n', h.fast_toc);
+%fprintf('Proximal gradient time elapsed: %.2f seconds.\n', time_ista);
+%fprintf('Fast prox gradient time elapsed: %.2f seconds.\n', time_fista);
 
 %% Plots
 
 % Display the original and noisy images
-recovered_ista = reshape(A * h.x_prox, rows, cols, numberOfColorChannels);
-recovered_fista = reshape(A * h.x_fast, rows, cols, numberOfColorChannels);
+recovered_ista = reshape(A * x_prox, rows, cols, numberOfColorChannels);
+recovered_fista = reshape(A * x_fast, rows, cols, numberOfColorChannels);
 %recovered_cvx = reshape(A * h.x_cvx, rows, cols);
 
 % PSNRs
-psnr_ista = psnr(recovered_ista, normalized_patch);
-psnr_fista = psnr(recovered_fista, normalized_patch);
+psnr_ista = psnr(recovered_ista, orig_patch);
+psnr_fista = psnr(recovered_fista, orig_patch);
 %psnr_cvx = psnr(recovered_cvx, image_double);
-
 
 figure;
 subplot(2, 2, 1);
-imshow(patch);
+imshow(orig_patch);
 title('Original Patch');
 
 subplot(2, 2, 2);
-imshow(normalized_patch);
+imshow(patch);
 title('Noisy Patch');
 
 subplot(2, 2, 3);
 imshow(recovered_ista);
-title(['Recovered Image (ISTA). PSNR: ' num2str(psnr_ista)]);
+title(['Recovered Image (ISTA p). PSNR: ' num2str(psnr_ista)]);
 
 subplot(2, 2, 4);
 imshow(recovered_fista);
 title(['Recovered Image (FISTA) PSNR: ' num2str(psnr_fista)]);
-
-
+% x_axis = 1:n;
+% figure;
+% subplot(1, 2, 1);
+% plot(x_axis, ista_psnr);
+% title('ISTA');
+% subplot(1, 2, 2);
+% plot(x_axis, fista_psnr);
+% title('FISTA');
 end
 
 function p = objective(A, b, gamma, x, z)
