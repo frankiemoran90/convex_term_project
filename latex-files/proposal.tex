@@ -1,0 +1,72 @@
+\documentclass[a4paper]{article}
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+
+\usepackage{booktabs}
+\usepackage{tabu}
+\usepackage[T1]{fontenc}
+
+%% Sets page size and margins
+\usepackage[letterpaper,top=1.5cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+
+\usepackage{graphicx}
+%\usepackage{apacite}
+% \usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{soul}
+\usepackage{wrapfig}
+\usepackage[font=small,skip=0pt]{caption}
+\pagenumbering{gobble}
+\renewcommand{\refname}{}
+
+\setul{2.2pt}{0.7pt}
+
+\title{\ul{Convex Optimization - Project Proposal - Spring 2024}
+% \\\;\\Universal Denoising in Plug\&Play Iterative Methods
+}
+\author{
+% Francis Moran \;\;\; Ali Zafari
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+% \noindent\ul{\textbf{Problem Definition.}} 
+\noindent\textbf{Team Members:} Francis Moran and Ali Zafari\\\\
+\textbf{Project Topic:} Proximal Optimization\\
+
+\noindent\textbf{Initial Papers:}
+\cite{parikh2014proximal}, \cite{beck2009fast}, \cite{wright2009sparse}\\\\
+
+\noindent\textbf{Project Description:} The general focus of this project is on the application and performance analysis of proximal optimization methods to solve the following optimization problem, known as \textit{Basis Pursuit Denoising} (BPDN): 
+\begin{align*}
+    \min_{\mathbf{x}\in\mathbb{R}^n}\;\; \|\mathbf{y}-A\mathbf{x}\|_2^2+\lambda \|\mathbf{x}\|_1
+\end{align*}
+where $\mathbf{y}\in\mathbb{R}^m$ is the measurement signal, $\mathbf{x}\in \mathbb{R}^n$ is the signal of interest to be recovered from the measurement $\mathbf{y}$, the matrix $A\in\mathbb{R}^{m\times n}$ is a known sensing matrix where $m<n$ and $\lambda\geq0$.\\
+Since the $l_1-$norm is a non-differentiable function, various methods have been proposed to solve this problem. Of these methods, those using proximal optimization techniques will be  the subject of this project.\\
+
+Our project revolves around three key papers: Firstly, we establish the mathematical framework inspired by \cite{parikh2014proximal} for general proximal optimization algorithms and explore its theoretical implications. Subsequently, we delve into the implementation and analysis of the FISTA algorithm outlined in \cite{beck2009fast} for solving the BPDN problem. Finally, we contrast our findings with the implementation of SpaRSA, as detailed in \cite{wright2009sparse}, concentrating on the identical BPDN problem.\\
+
+In order to give a complete description of proximal operators, our project will cover the theoretical background behind these devices, their convergence properties, and sample implementations with several algorithms. Differentiating properties of these algorithms will be noted as well as scenarios best suited for specific use. This discussion will culminate in the description of the Iterative Shrinkage Thresholding Algorithm (ISTA). This algorithm uses soft thresholding to encourage sparsity and produce a solution to the BPDN problem. While effective, this algorithm is very slow and better alternatives have been shown in the literature. \\
+
+The first of such solutions is the Fast Iterative Shrinking-Thresholding Algorithm (FISTA) \cite{beck2009fast}. The essential improvement of FISTA over ISTA is the point at which the iterative shrinkage/ thresholding operator is applied. This small change has large consequences in terms of convergence rate. This project will discuss the differences in the algorithms, how convergence is ensured (along with speed of convergence), and how this algorithm is implemented in regards to the BPDN problem. \\ 
+
+The overall framework of the SpaRSA algorithm, proposed in \cite{wright2009sparse}, bears resemblance to that of ISTA. Both methods involve parameters linked to a Lipschitz constant for the quadratic function $\|\mathbf{y}-A\mathbf{x}\|_2^2$; however, the criteria for selecting this parameter and the approach to line search differ significantly. In SpaRSA, a non-monotone line search is employed, whereas ISTA employs a line search strategy resulting in a monotonic reduction of the objective function value. \\
+
+For both ISTA and SpaRSA algorithms, when $f$ is convex, the convergence rate is $\mathcal{O}(1/k)$. Compared to the Faster ISTA (FISTA) version, proposed in \cite{beck2009fast}, where the convergence rate is $\mathcal{O}(1/k^2)$. Despite the resemblance in the asymptotic convergence properties of SpaRSA and ISTA, and the asymptotic superiority of the $\mathcal{O}(1/k^2)$ convergence rate for the FISTA variants, empirical observations indicate that SpaRSA often outperforms both ISTA and its accelerated variants in terms of speed. In this project we analytically analyze the convergence rates for the three algorithms ISTA, FISTA and SpaRSA. We also implement the three algorithms to measure the practical convergence rate and compare the performance of algorithms in solving the linear inverse problem of BPDN.
+
+
+\bibliographystyle{ieeetr}
+\bibliography{refs}
+
+\end{document}
+
+Due to the need of adaptability of denoiser to the noise level at various iterations, separate pre-trained denoisers are used 
